@@ -6,7 +6,7 @@ const port = 3022
 
 const app = express();
 
-const cache = new Map<string, {
+const cache = new Map<number, {
     data: Buffer,
     time: number,
     size: number
@@ -97,12 +97,13 @@ app.get('/:i', async (req, res) => {
     }
 
     const playerDataRes = await fetch(`https://jpxs.io/api/player/${i}`)
-    const playerData = await playerDataRes.json();
+    const playerData = await playerDataRes.json() as JPXSPlayerSearchResponse
 
     if (!playerData.success) return res.status(400).json({ error: "Request failed." })
 
+    const player = playerData.players.sort((a, b) => new Date(b.lastSeen).getTime() - new Date(a.lastSeen).getTime())[0];
 
-    if (cache.has(playerData.players[0].phoneNumber)) {
+    if (cache.has(player.phoneNumber)) {
         const cached = cache.get(playerData.players[0].phoneNumber);
 
         if (cached && cached.size === size) {
@@ -112,8 +113,7 @@ app.get('/:i', async (req, res) => {
         }
     }
 
-
-    const avatar = playerData.players[0].avatarHistory[0].avatar;
+    const avatar = player.avatarHistory.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0].avatar;
 
     const img = await puppet.getAvatarScreenshot({
         team: "meg",
