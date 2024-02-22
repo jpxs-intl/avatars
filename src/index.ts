@@ -107,6 +107,9 @@ app.get('/:i', async (req, res) => {
         const cached = cache.get(playerData.players[0].phoneNumber);
 
         if (cached && cached.size === size) {
+
+            console.log(`Getting avatar for ${player.phoneNumber} with size ${size} - using cache`)
+
             res.type("png");
             res.send(cached.data);
             return;
@@ -114,6 +117,8 @@ app.get('/:i', async (req, res) => {
     }
 
     const avatar = player.avatarHistory.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0].avatar;
+
+    console.log(`Getting avatar for ${player.phoneNumber} with size ${size} - got id ${avatar.id}`)
 
     const img = await puppet.getAvatarScreenshot({
         team: "meg",
