@@ -46,9 +46,10 @@ class Puppeteer {
         hairColor: number,
         skinColor: number,
         hair: number,
-        size?: number
+        size?: number,
+        silly?: boolean
     }) {
-        await this.runJs(`${Object.keys(opt).map(key => `rosa.${key} = "${(opt as any)[key]}"`).join(";")};rosa.redraw();`)
+        await this.runJs(`${Object.keys(opt).map(key => `rosa.${key} = "${(opt as any)[key]}"`).join(";")};rosa.redraw();${opt.silly ? " camera.position.set(0, 0.4, 1.6);camera.rotation.set(-0.7, 0, 0);camera.fov = 120;" : ""}`)
         const canvasElement = await this.page.$("canvas");
         if (!canvasElement) throw new Error("Canvas element not found");
 
@@ -89,12 +90,18 @@ app.get('/:i', async (req, res) => {
 
 
     let size = 256;
+    let silly = false;
 
     if (req.query.size) {
         size = parseInt(req.query.size as string);
 
         if (isNaN(size) || size < 16 || size > 1024) return res.status(400).json({ error: "Invalid size" })
     }
+
+    if (req.query.silly) {
+        silly = true;
+    }
+
 
     const playerDataRes = await fetch(`https://jpxs.io/api/player/${i}`)
     const playerData = await playerDataRes.json() as JPXSPlayerSearchResponse
@@ -129,6 +136,7 @@ app.get('/:i', async (req, res) => {
         gender: avatar.sex == 1 ? "m" : "f",
         hair: avatar.hair + 1,
         size,
+        silly
     })
 
     cache.set(playerData.players[0].phoneNumber, {
