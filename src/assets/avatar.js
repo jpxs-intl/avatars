@@ -87,7 +87,7 @@ for (let command of window.location.hash.split(";")) {
   }
 }
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(120, window.innerWidth / window.innerHeight, 0.1, 1000);
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer({ antialias: rosa.antiAliasing, alpha: true });
 const setSize = () => {
   renderer.setPixelRatio(window.devicePixelRatio || 1);
