@@ -1,47 +1,42 @@
-interface JPXSPlayerSearchResponse {
-    success: boolean;
-    requestTime: number;
-    searchMode: string;
-    players: Player[];
-}
-
-interface Player {
+export interface JPXSPlayerSearchResponse {
     name: string;
-    avatar: Avatar;
-    description: string;
-    gameId: number;
     phoneNumber: number;
-    discordId: string;
-    steamId: string;
+    gameId: number;
+    steamId: null;
+    discordId: null;
     firstSeen: string;
     lastSeen: string;
-    nameHistory: NameHistory[];
-    avatarHistory: AvatarHistory[];
+    avatar: Avatar;
+    status: Status;
 }
 
-interface AvatarHistory {
-    id: string;
-    avatar: Avatar2;
-    date: string;
-    url: string;
+interface Status {
+    online: boolean;
+    server: Server;
+    startedAt: string;
+    endedAt: string;
 }
 
-interface Avatar2 {
+interface Server {
     id: string;
-    sex: number;
-    head: number;
-    eyes: number;
-    hair: number;
-    hairColor: number;
-    skin: number;
-}
-
-interface NameHistory {
-    id: string;
-    date: string;
-    name: string;
+    address: string;
+    port: number;
+    identifier: number;
+    description: string;
+    icon: string;
+    tags: string[];
+    link: string;
+    bans: any[];
+    createdAt: string;
+    updatedAt: string;
 }
 
 interface Avatar {
     id: string;
+    gender: number;
+    skinColor: number;
+    hairColor: number;
+    hair: number;
+    eyeColor: number;
+    head: number;
 }
