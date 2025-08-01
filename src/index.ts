@@ -1,17 +1,28 @@
 import express from 'express';
 import puppeteer, { Browser, Page } from "puppeteer";
 import path from "path";
-import { JPXSPlayerSearchResponse } from './types';
+import { Avatar } from './types';
 
 const port = 3022
 
 const app = express();
 
+// id.team.size -- eg 4040000.17.256
 const cache = new Map<string, {
     data: Buffer,
     time: number,
-    size: number
 }>();
+
+const teamMap = {
+    0: "gdm",
+    1: "mon",
+    2: "oxs",
+    3: "nex",
+    4: "ptc",
+    5: "prd",
+    6: "meg",
+    8: "brn"
+}
 
 class Puppeteer {
 
@@ -40,7 +51,8 @@ class Puppeteer {
 
     public async getAvatarScreenshot(opt: {
         gender: "m" | "f",
-        team: "gdm" | "mon" | "oxs" | "nex" | "ptc" | "meg",
+        team: "gdm" | "mon" | "oxs" | "nex" | "ptc" | "meg" | "brn",
+        class?: number,
         head: number,
         eyeColor: number,
         hairColor: number,
@@ -87,12 +99,10 @@ class Puppeteer {
         console.log(`Canvas element found, preparing to take screenshot`)
 
         // set viewport size
-        if (opt.size) {
-            await page.setViewport({
-                width: opt.size,
-                height: opt.size
-            })
-        }
+        await page.setViewport({
+            width: opt.size || 256,
+            height: opt.size || 256
+        })
 
         console.log(`Taking screenshot for avatar with options: ${JSON.stringify(opt)}`)
 
@@ -120,7 +130,6 @@ app.get("/cache", (req, res) => {
         size: cache.size,
         cache: Array.from(cache.entries()).map(([key, value]) => ({
             key,
-            size: value.size,
             time: value.time,
             age: Date.now() - value.time
         }))
@@ -132,39 +141,25 @@ const puppet = new Puppeteer();
 app.get('/:i', async (req, res) => {
 
     const { i } = req.params;
+    let size = req.query.size ? parseInt(req.query.size as string) : 256;
+    const silly = req.query.silly ? Boolean(req.query.silly) : false;
+    const team = req.query.team ? parseInt(req.query.team as string) : 17;
 
     if (!i) return res.status(400).json({ error: "Missing param" })
 
-
-    let size = 256;
-    let silly = false;
-
-    if (req.query.size) {
+    if (size) {
         size = parseInt(req.query.size as string);
 
         if (isNaN(size) || size < 16 || size > 1024) return res.status(400).json({ error: "Invalid size" })
     }
 
-    if (req.query.silly) {
-        silly = true;
-    }
+    const cacheKey = `${i}.${team}.${size}`;
 
+    if (cache.has(cacheKey)) {
+        const cached = cache.get(cacheKey);
 
-    const playerDataRes = await fetch(`https://beta.jpxs.io/api/player/${i}`)
-    const playerData = await playerDataRes.json() as JPXSPlayerSearchResponse[]
-
-    const player = playerData[0]
-
-    if (!player) return res.status(404).json({ error: "Player not found" })
-
-    const avatar = player.avatar
-
-    if (cache.has(avatar.id)) {
-        const cached = cache.get(avatar.id);
-
-        if (cached && cached.size === size) {
-
-            console.log(`Getting avatar for ${avatar.id} with size ${size} - using cache`)
+        if (cached) {
+            console.log(`Getting avatar for ${i} with size ${size} - using cache`)
 
             res.type("png");
             res.send(cached.data);
@@ -172,11 +167,16 @@ app.get('/:i', async (req, res) => {
         }
     }
 
+    const avatarRes = await fetch(`https://beta.jpxs.io/api/avatar/${i}`)
+    const avatar = await avatarRes.json() as Avatar
 
     console.log(`Getting avatar for ${avatar.id} with size ${size} - got id ${avatar.id}`)
 
+    const teamStr = team == 17 ? "civ" : teamMap[team as keyof typeof teamMap] || "meg";
+
     const img = await puppet.getAvatarScreenshot({
-        team: "meg",
+        team: teamStr == "civ" ? "meg" : (teamStr as "gdm" | "mon" | "oxs" | "nex" | "ptc" | "meg" | "brn"),
+        class: team == 17 ? 1 : 0,
         head: avatar.head + 1,
         eyeColor: avatar.eyeColor + 1,
         hairColor: avatar.hairColor + 1,
@@ -187,10 +187,9 @@ app.get('/:i', async (req, res) => {
         silly
     })
 
-    cache.set(avatar.id, {
+    cache.set(cacheKey, {
         data: img,
         time: Date.now(),
-        size
     })
 
     res.type("png");
